@@ -56,7 +56,17 @@ async function signRequest(providerPath, url, headers, cookieJar, signProviderOp
     try {
         for (signHost of hostsToTry) {
             try {
-                signResponse = await axios.get(signHost + providerPath, { params, headers: signProviderOptions?.headers, responseType: 'json' });
+                const config = {
+                    params,
+                    headers: signProviderOptions?.headers,
+                    responseType: 'json',
+                };
+
+                if (signHost === signProviderOptions.host && signProviderOptions?.timeout) {
+                    config.timeout = signProviderOptions.timeout;
+                }
+
+                signResponse = await axios.get(signHost + providerPath, config);
 
                 if (signResponse.status === 200 && typeof signResponse.data === 'object') {
                     break;
@@ -83,7 +93,14 @@ async function signRequest(providerPath, url, headers, cookieJar, signProviderOp
         }
 
         if (cookieJar) {
-            cookieJar.setCookie('msToken', signResponse.data['msToken']);
+            if (signHost === signProviderOptions?.host && signResponse.data['Cookies'] && Array.isArray(signResponse.data['Cookies'])) {
+                signResponse.data['Cookies'].forEach((cookie) => {
+                    cookieJar.setCookie(cookie.name, cookie.value);
+                });
+            } else {
+                cookieJar.clear();
+                cookieJar.setCookie('msToken', signResponse.data['msToken']);
+            }
         }
 
         signEvents.emit('signSuccess', {
