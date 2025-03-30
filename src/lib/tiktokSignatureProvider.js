@@ -49,6 +49,10 @@ async function signRequest(providerPath, url, headers, cookieJar, signProviderOp
         }
     }
 
+    if (typeof signProviderOptions?.only === 'boolean' && signProviderOptions.only) {
+        hostsToTry = [signProviderOptions.host];
+    }
+
     let signHost;
     let signResponse;
     let signError;
